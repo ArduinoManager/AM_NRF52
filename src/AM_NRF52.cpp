@@ -410,7 +410,7 @@ void AMController::writeMessage(const char *variable, float value) {
     return;
   }
   memset(&buffer, 0, 128);
-  snprintf(buffer, 128, "%s=%.3f#", variable, value);
+  snprintf(buffer, 128, "%s=%.5f#", variable, value);
   writeBuffer((uint8_t *)&buffer, strlen(buffer));
   delay(WRITE_DELAY);
 }
@@ -434,6 +434,7 @@ void AMController::writeTxtMessage(const char *variable, const char *value) {
   }
   memset(&buffer, 0, 128);
   snprintf(buffer, 128, "%s=%s#", variable, value);
+  Serial.print("-");Serial.print(buffer); Serial.println("-"); 
   writeBuffer((uint8_t *)&buffer, strlen(buffer));
   delay(WRITE_DELAY);
 }
@@ -442,29 +443,36 @@ void AMController::writeTxtMessage(const char *variable, const char *value) {
 	Can send a buffer longer than 20 bytes
 **/
 void AMController::writeBuffer(uint8_t *buffer, int l) {
-  uint8_t buffer1[22];
 
   if (!_connected) {
     return;
   }
 
+  uint16_t mtu = Bluefruit.Connection(0)->getMtu();
+  //Serial.print("MTU Size: "); Serial.println(mtu);
+  uint8_t buffer1[mtu+1];
+
+
   uint8_t idx = 0;
 
   while (idx < l) {
 
-    uint8_t this_block_size = min(20, l - idx);
-    memset(&buffer1, '\0', 22);
+    uint8_t this_block_size = min(mtu, l - idx);
+    memset(&buffer1, '\0', mtu + 1);
     memcpy(&buffer1, buffer + idx, this_block_size);
+    buffer1[mtu] = '\0';
 
 #ifdef DEBUG
-    //Serial.print("Sending >"); Serial.print((char *)buffer1); Serial.print("<"); Serial.println();
+    //Serial.print("\tSending >"); Serial.print((char *)buffer1); Serial.print("< "); Serial.print(strlen((char *)buffer1)); Serial.println();
 #endif
 
-		arduinoManagerCharacteristic.notify(&buffer1, 20);
+		arduinoManagerCharacteristic.notify(&buffer1, mtu);
     delay(WRITE_DELAY);
 
     idx += this_block_size;
   }
+
+  delay(WRITE_DELAY);
 }
 
 void AMController::log(const char *msg) {
