@@ -410,7 +410,10 @@ void AMController::writeMessage(const char *variable, float value) {
     return;
   }
   memset(&buffer, 0, 128);
-  snprintf(buffer, 128, "%s=%.5f#", variable, value);
+  snprintf(buffer, 128, "%s=%.4f#", variable, value);
+  if (strlen(buffer)==21) {
+    snprintf(buffer, 128, "%s=%.4f#####", variable, value);
+  }
   writeBuffer((uint8_t *)&buffer, strlen(buffer));
   delay(WRITE_DELAY);
 }
@@ -458,13 +461,16 @@ void AMController::writeBuffer(uint8_t *buffer, int l) {
   while (idx < l) {
 
     uint8_t this_block_size = min(mtu, l - idx);
-    memset(&buffer1, '\0', mtu + 1);
+    memset(&buffer1, '\0', mtu);
     memcpy(&buffer1, buffer + idx, this_block_size);
     buffer1[mtu] = '\0';
 
 #ifdef DEBUG
     //Serial.print("\tSending >"); Serial.print((char *)buffer1); Serial.print("< "); Serial.print(strlen((char *)buffer1)); Serial.println();
 #endif
+
+Serial.print("\t["); Serial.print(mtu); Serial.print("] ");
+Serial.print("\tSending >"); Serial.print((char *)buffer1); Serial.print("< "); Serial.print(strlen((char *)buffer1)); Serial.println();
 
 		arduinoManagerCharacteristic.notify(&buffer1, mtu);
     delay(WRITE_DELAY);
