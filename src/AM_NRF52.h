@@ -60,6 +60,7 @@ class AMController {
     bool				_sync;
     
     BLEService 	arduinoManagerService;
+    BLEBas			batteryLevelService;
 
 #ifdef SD_SUPPORT
     SDLib::File      _root;
@@ -180,6 +181,8 @@ to properly start the advertisement data with the desired device name
     void writeMessage(const char *variable, float value);
     void writeTripleMessage(const char *variable, float vX, float vY, float vZ);
     void writeTxtMessage(const char *variable, const char *value);
+    
+    void updateBatteryLevel(uint8_t level); // A value between 0% and 100%
 
     void log(const char *msg);
     void log(int msg);

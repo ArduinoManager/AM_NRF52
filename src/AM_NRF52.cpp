@@ -191,6 +191,12 @@ void AMController::setupArduinoManagerService(void) {
   	data[i] = 0x00;
   	
   arduinoManagerCharacteristic.notify(data, 20);                   // Use .notify instead of .write!
+
+
+	batteryLevelService = BLEBas();
+	batteryLevelService.begin();
+	batteryLevelService.notify(0);
+
 }
 
 void AMController::loop() {
@@ -411,9 +417,6 @@ void AMController::writeMessage(const char *variable, float value) {
   }
   memset(&buffer, 0, 128);
   snprintf(buffer, 128, "%s=%.4f#", variable, value);
-  if (strlen(buffer)==21) {
-    snprintf(buffer, 128, "%s=%.4f#####", variable, value);
-  }
   writeBuffer((uint8_t *)&buffer, strlen(buffer));
   delay(WRITE_DELAY);
 }
@@ -432,12 +435,11 @@ void AMController::writeTripleMessage(const char *variable, float vX, float vY, 
 void AMController::writeTxtMessage(const char *variable, const char *value) {
  char buffer[128];
 
-  if (!_connected) {
+  if (!_connected) {  
     return;
   }
   memset(&buffer, 0, 128);
   snprintf(buffer, 128, "%s=%s#", variable, value);
-  Serial.print("-");Serial.print(buffer); Serial.println("-"); 
   writeBuffer((uint8_t *)&buffer, strlen(buffer));
   delay(WRITE_DELAY);
 }
@@ -452,27 +454,29 @@ void AMController::writeBuffer(uint8_t *buffer, int l) {
   }
 
   uint16_t mtu = Bluefruit.Connection(0)->getMtu();
-  //Serial.print("MTU Size: "); Serial.println(mtu);
-  uint8_t buffer1[mtu+1];
-
-
+  uint8_t buffer1[20];
   uint8_t idx = 0;
 
   while (idx < l) {
 
-    uint8_t this_block_size = min(mtu, l - idx);
-    memset(&buffer1, '\0', mtu);
+    uint8_t this_block_size = min(20, l - idx);
+    memset(&buffer1, '#', 20);
     memcpy(&buffer1, buffer + idx, this_block_size);
-    buffer1[mtu] = '\0';
+    // buffer1[mtu] = '\0';
 
 #ifdef DEBUG
     //Serial.print("\tSending >"); Serial.print((char *)buffer1); Serial.print("< "); Serial.print(strlen((char *)buffer1)); Serial.println();
 #endif
 
-Serial.print("\t["); Serial.print(mtu); Serial.print("] ");
-Serial.print("\tSending >"); Serial.print((char *)buffer1); Serial.print("< "); Serial.print(strlen((char *)buffer1)); Serial.println();
+  // Serial.print("\t["); Serial.print(mtu); Serial.print("] ");
+  // Serial.print("Sending >");
+  // for (int i=0; i<20; i++) {
+  //   Serial.print((char)buffer1[i]);
+  // }
+  // Serial.print("< ");
+  // Serial.println(sizeof(buffer1));
 
-		arduinoManagerCharacteristic.notify(&buffer1, mtu);
+		arduinoManagerCharacteristic.notify(&buffer1, sizeof(buffer1));
     delay(WRITE_DELAY);
 
     idx += this_block_size;
@@ -480,6 +484,11 @@ Serial.print("\tSending >"); Serial.print((char *)buffer1); Serial.print("< "); 
 
   delay(WRITE_DELAY);
 }
+
+
+void AMController::updateBatteryLevel(uint8_t level) {
+	batteryLevelService.notify(level);
+} 
 
 void AMController::log(const char *msg) {
 
@@ -794,26 +803,26 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
 void cccd_callback(uint16_t conn_hdl, BLECharacteristic* chr, uint16_t cccd_value) {
 
   // Display the raw request packet
-  Serial.print("CCCD Updated: ");
-  //Serial.printBuffer(request->data, request->len);
-  Serial.print(cccd_value);
-  Serial.println("");
+  //Serial.print("CCCD Updated: ");
+    //Serial.printBuffer(request->data, request->len);
+  //Serial.print(cccd_value);
+  //Serial.println("");
 
   // Check the characteristic this CCCD update is associated with in case
   // this handler is used for multiple CCCD records.
   if (chr->uuid == myGlobal->arduinoManagerCharacteristic.uuid) {
-    if (chr->notifyEnabled()) {
-      Serial.println("'Notify' enabled");
-    } else {
-      Serial.println("'Notify' disabled");
-    }
+    // if (chr->notifyEnabled()) {
+    //   Serial.println("'Notify' enabled");
+    // } else {
+    //   Serial.println("'Notify' disabled");
+    // }
   }
   if (chr->uuid == myGlobal->arduinoManagerCharacteristic.uuid) {
-    if (chr->indicateEnabled()) {
-      Serial.println("'Indicate' enabled");
-    } else {
-      Serial.println("'Indicate' disabled");
-    }
+    // if (chr->indicateEnabled()) {
+    //   Serial.println("'Indicate' enabled");
+    // } else {
+    //   Serial.println("'Indicate' disabled");
+    // }
   }
 }
 
