@@ -15,7 +15,7 @@
 
    Author: Fabrizio Boco - fabboco@gmail.com
 
-   Version: 1.0
+   Version: 1.1.0
 
    All rights reserved
 
